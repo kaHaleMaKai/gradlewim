@@ -21,6 +21,8 @@ set -euo pipefail
 startDir="$(pwd)"
 curPath="$startDir"
 gradlew="${startDir}/gradlew"
+tmpDir='/tmp/gradlewim'
+tmpFile="${tmpDir}/offline"
 foundGradlew=0
 exitStatus=0
 
@@ -34,6 +36,42 @@ trap \
   resetWorkingDir \
   SIGHUP SIGINT SIGTERM KILL EXIT
 
+if [[ ! -e "$tmpDir" ]]; then
+  mkdir -p "$tmpDir"
+fi
+
+if [[ ! -e "$tmpFile" ]]; then
+  touch "$tmpFile"
+fi
+
+workOffline=''
+if [[ -n "$tmpFile" ]] && [[ "$(cat "$tmpFile")" = 'offline' ]]; then
+  workOffline='--offline'
+fi
+
+
+case "${1:-}" in
+  --go-offline) echo 'offline' > "$tmpFile"\
+                && echo "[INFO] going offline" >&2 \
+                && exit
+    ;;
+  --go-online) truncate -s 0 "$tmpFile" \
+                && echo "[INFO] going online" >&2 \
+                && exit
+  ;;
+  --is-online) [[ -z "$workOffline" ]] \
+               && echo "[INFO] true" >&2 \
+               || echo "[INFO] false" >&2 \
+               ; exit
+    ;;
+  --is-offline) [[ -z "$workOffline" ]] \
+                && echo "[INFO] false" >&2 \
+                || echo "[INFO] true" >&2 \
+                ; exit
+    ;;
+  *) :
+esac
+
 while [[ "$curPath" != '/' ]]; do
   if [[ -f "$gradlew" ]]; then
     foundGradlew=1
@@ -44,7 +82,7 @@ while [[ "$curPath" != '/' ]]; do
   fi
 done
 if [[ $foundGradlew -eq 1 ]]; then
-  cd "$curPath" && $gradlew "$@"
+  cd "$curPath" && $gradlew $workOffline "$@"
 else
   echo "[ERROR] not inside a gradle project incl. a wrapper" >&2
   exitStatus=1
