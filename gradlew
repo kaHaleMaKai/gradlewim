@@ -49,28 +49,39 @@ if [[ -n "$tmpFile" ]] && [[ "$(cat "$tmpFile")" = 'offline' ]]; then
   workOffline='--offline'
 fi
 
+useCurDir=0
 
-case "${1:-}" in
-  --go-offline) echo 'offline' > "$tmpFile"\
-                && echo "[INFO] going offline" >&2 \
-                && exit
+readonly localGradleDir="${HOME}/.gradle"
+while :; do
+  case "${1:-}" in
+    localProps) mkdir -p "$localGradleDir" \
+                && exec editor "$localGradleDir/gradle.properties" \
+                || exit
+      ;;
+    .) useCurDir=1 \
+       && shift
+      ;;
+    --go-offline) echo 'offline' > "$tmpFile" \
+                  && echo "[INFO] going offline" >&2 \
+                  && exit
+      ;;
+    --go-online) truncate -s 0 "$tmpFile" \
+                  && echo "[INFO] going online" >&2 \
+                  && exit
     ;;
-  --go-online) truncate -s 0 "$tmpFile" \
-                && echo "[INFO] going online" >&2 \
-                && exit
-  ;;
-  --is-online) [[ -z "$workOffline" ]] \
-               && echo "[INFO] true" >&2 \
-               || echo "[INFO] false" >&2 \
-               ; exit
-    ;;
-  --is-offline) [[ -z "$workOffline" ]] \
-                && echo "[INFO] false" >&2 \
-                || echo "[INFO] true" >&2 \
-                ; exit
-    ;;
-  *) :
-esac
+    --is-online) [[ -z "$workOffline" ]] \
+                 && echo "[INFO] true" >&2 \
+                 || echo "[INFO] false" >&2 \
+                 ; exit
+      ;;
+    --is-offline) [[ -z "$workOffline" ]] \
+                  && echo "[INFO] false" >&2 \
+                  || echo "[INFO] true" >&2 \
+                  ; exit
+      ;;
+    *) break
+  esac
+done
 
 while [[ "$curPath" != '/' ]]; do
   if [[ -f "$gradlew" ]]; then
@@ -82,7 +93,10 @@ while [[ "$curPath" != '/' ]]; do
   fi
 done
 if [[ $foundGradlew -eq 1 ]]; then
-  cd "$curPath" && $gradlew $workOffline "$@"
+  if [[ $useCurDir -eq 0 ]]; then
+    cd "$curPath"
+  fi
+  $gradlew $workOffline "$@"
 else
   echo "[ERROR] not inside a gradle project incl. a wrapper" >&2
   exitStatus=1
