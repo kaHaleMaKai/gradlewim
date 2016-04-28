@@ -7,8 +7,6 @@ If you don't want to install gradle system-wide, but rather rely on the gradle e
 
 Also works with `zsh` auto completion!
 
----
-
 ## todos
 
 currently, nothing's on the list
