@@ -25,6 +25,7 @@ tmpDir='/tmp/gradlewim'
 tmpFile="${tmpDir}/offline"
 foundGradlew=0
 exitStatus=0
+editLocalProps=0
 
 resetWorkingDir() {
   local exitStatus=$?
@@ -51,12 +52,14 @@ fi
 
 useCurDir=0
 
-readonly localGradleDir="${HOME}/.gradle"
+readonly globalGradleDir="${HOME}/.gradle"
 while :; do
   case "${1:-}" in
-    localProps) mkdir -p "$localGradleDir" \
-                && exec editor "$localGradleDir/gradle.properties" \
-                || exit
+    localProps) editLocalProps=1 && break
+      ;;
+    globalProps) mkdir -p "$globalGradleDir" \
+                 && exec editor "$globalGradleDir/gradle.properties" \
+                 || exit
       ;;
     .) useCurDir=1 \
        && shift
@@ -96,7 +99,11 @@ if [[ $foundGradlew -eq 1 ]]; then
   if [[ $useCurDir -eq 0 ]]; then
     cd "$curPath"
   fi
-  $gradlew $workOffline "$@"
+  if [[ $editLocalProps -eq 1 ]]; then
+    exec editor "${curPath}/gradle.properties"
+  else
+    $gradlew $workOffline "$@"
+  fi
 else
   echo "[ERROR] not inside a gradle project incl. a wrapper" >&2
   exitStatus=1
