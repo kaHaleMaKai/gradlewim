@@ -105,8 +105,12 @@ if [[ $foundGradlew -eq 1 ]]; then
     $gradlew $workOffline "$@"
   fi
 else
-  echo "[ERROR] not inside a gradle project incl. a wrapper" >&2
-  exitStatus=1
+  if [[ "${1:-}" = 'init' ]] || [[ "${1:-}" = 'wrapper' ]]; then
+    ~/bin/gradle/bin/gradle "$1"
+  else
+    echo "[ERROR] not inside a gradle project incl. a wrapper" >&2
+    exitStatus=1
+  fi
 fi
 
 exit $exitStatus
